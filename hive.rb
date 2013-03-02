@@ -17,6 +17,21 @@ module Hive
 
     # Error constants
     InvalidPlacement = 1
+
+    # Bug constants
+    Ant1         = 0
+    Ant2         = 1
+    Ant3         = 2
+    Grasshopper1 = 3
+    Grasshopper2 = 4
+    Grasshopper3 = 5
+    Spider1      = 6
+    Spider2      = 7
+    Beetle1      = 8
+    Beetle2      = 9
+    Ladybug1     = 10
+    Mosquito1    = 11
+    Queen1       = 12
     
     class Game
         attr_accessor :trays,
@@ -53,15 +68,17 @@ module Hive
         def play
             $game.surface.+$game.white.get('Ant')
             $game.surface.+$game.black.get('Beetle')
-            $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, 0), BottomLeft)
+            $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant1), BottomLeft)
             #$game.surface.place_candidates($game.turn)
-            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, 8), BottomLeft)
-            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, 8), TopRight)
-            $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, 1), BottomRight)
-            $game.surface.+($game.black.get('Queen'), $game.surface.bug(Black, 3), TopRight)
-            $game.surface.+($game.white.get('Queen'), $game.surface.bug(White, 2), BottomRight)
-            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, 12), TopRight)
-            $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, 0), BottomCenter)
+            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), BottomLeft)
+            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), TopRight)
+            $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant2), BottomRight)
+            $game.surface.+($game.black.get('Queen'), $game.surface.bug(Black, Grasshopper1), TopRight)
+            $game.surface.+($game.white.get('Queen'), $game.surface.bug(White, Ant3), BottomRight)
+            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Queen1), TopRight)
+            $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Ant1), BottomCenter)
+
+            #$game.surface.bug(White, Ant1).move_candidates;
         end
 
         def check_state
@@ -84,6 +101,7 @@ module Hive
 
         def notify(bug, side, echo = true)
             @sides[side].bug = bug
+            bug.sides[Side::opposite?(side)].bug = self
             puts "#{$game.turn?} placed #{bug} in #{Side::name? side} of #{self}" if echo != false
         end
 
@@ -94,9 +112,46 @@ module Hive
         end
 
         def describe
+            puts "This is what's around " << self
             @sides.each_with_index{|side, index|
                 puts "    " << side.bug << " is in " << Side::name?(index) if side.bug != false
                 puts "    " << Side::name?(index) << " is open" if side.bug == false
+            }
+        end
+
+        def look_around
+            @sides.each_with_index{|side, name|
+                if name == TopLeft
+                    if side.open? == false
+                        self.notify(side.bug.top_right, TopCenter) if side.bug.top_right != nil
+                        self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
+                    end
+                 elsif name == TopCenter
+                    if side.open? == false
+                        self.notify(side.bug.bottom_left, TopLeft) if side.bug.bottom_left != nil
+                        self.notify(side.bug.bottom_right, TopRight) if side.bug.bottom_right != nil
+                    end
+                 elsif name == TopRight
+                    if side.open? == false
+                        self.notify(side.bug.top_left, TopCenter) if side.bug.top_left != nil
+                        self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
+                    end
+                 elsif name == BottomRight
+                    if side.open? == false
+                        self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
+                        self.notify(side.bug.bottom_left, BottomCenter) if side.bug.bottom_left != nil
+                    end
+                 elsif name == BottomCenter
+                    if side.open? == false
+                        self.notify(side.bug.top_left, BottomLeft) if side.bug.top_left != nil
+                        self.notify(side.bug.top_right, BottomRight) if side.bug.top_right != nil
+                    end
+                 elsif name == BottomLeft
+                    if side.open? == false
+                        self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
+                        self.notify(side.bug.bottom_right, BottomCenter) if side.bug.bottom_right != nil
+                    end
+                 end
             }
         end
 
@@ -118,7 +173,7 @@ module Hive
         attr_accessor :bug
         
         def initialize; @bug = false; end
-        def open?; return true if @bug == false; end
+        def open?; return @bug == false; end
         def bug; return @bug; end
 
         def self.name?(side)
@@ -142,6 +197,10 @@ module Hive
 
     class Ant
         include Bug
+
+        def move_candidates
+            self.describe
+        end
 
         def move; end
     end
@@ -234,7 +293,7 @@ module Hive
                             raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
                         elsif self.place_candidates($game.turn).include? next_to.sides[side]
                             next_to.notify(bug, side)
-                            bug.notify(next_to, Side::opposite?(side), false)
+                            bug.look_around
                         else
                             error = InvalidPlacement
                             raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
