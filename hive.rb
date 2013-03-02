@@ -64,6 +64,19 @@ module Hive
         def white; return self.trays[White]; end
         def black; return self.trays[Black]; end
         def turn?; return @turn == 0 ? 'White' : 'Black'; end
+
+        def not_my_turn?(color)
+            begin
+                if self.turn == color
+                    return false
+                else
+                    raise HiveException, "#{color == White ? "White" : "Black"}, it's not your turn!", caller
+                end
+            rescue HiveException => e
+                puts e.message
+            end
+            return true
+        end
         
         def play
             $game.surface.+$game.white.get('Ant')
@@ -78,7 +91,7 @@ module Hive
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Queen1), TopRight)
             $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Ant1), BottomCenter)
 
-            #$game.surface.bug(White, Ant1).move_candidates;
+            puts $game.surface.move_candidates(White)
         end
 
         def check_state
@@ -86,161 +99,6 @@ module Hive
                 abort("#{$game.turn?} won!") if self.trays[color].queen.is_surrounded?
             }
         end
-    end
-
-    module Bug
-        attr_accessor :sides, :is_in_play, :id
-
-        def initialize(color, id)
-            @color = color
-            @id = id
-            @is_in_play = false
-            @sides = Array.new
-            6.times{@sides << Side.new}
-        end
-
-        def notify(bug, side, echo = true)
-            @sides[side].bug = bug
-            bug.sides[Side::opposite?(side)].bug = self
-            puts "#{$game.turn?} placed #{bug} in #{Side::name? side} of #{self}" if echo != false
-        end
-
-        def open_sides?
-            open_sides = Array.new
-            @sides.each{|side| open_sides << side if side.open?}
-            return open_sides.count
-        end
-
-        def describe
-            puts "This is what's around " << self
-            @sides.each_with_index{|side, index|
-                puts "    " << side.bug << " is in " << Side::name?(index) if side.bug != false
-                puts "    " << Side::name?(index) << " is open" if side.bug == false
-            }
-        end
-
-        def look_around
-            @sides.each_with_index{|side, name|
-                if name == TopLeft
-                    if side.open? == false
-                        self.notify(side.bug.top_right, TopCenter) if side.bug.top_right != nil
-                        self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
-                    end
-                 elsif name == TopCenter
-                    if side.open? == false
-                        self.notify(side.bug.bottom_left, TopLeft) if side.bug.bottom_left != nil
-                        self.notify(side.bug.bottom_right, TopRight) if side.bug.bottom_right != nil
-                    end
-                 elsif name == TopRight
-                    if side.open? == false
-                        self.notify(side.bug.top_left, TopCenter) if side.bug.top_left != nil
-                        self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
-                    end
-                 elsif name == BottomRight
-                    if side.open? == false
-                        self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
-                        self.notify(side.bug.bottom_left, BottomCenter) if side.bug.bottom_left != nil
-                    end
-                 elsif name == BottomCenter
-                    if side.open? == false
-                        self.notify(side.bug.top_left, BottomLeft) if side.bug.top_left != nil
-                        self.notify(side.bug.top_right, BottomRight) if side.bug.top_right != nil
-                    end
-                 elsif name == BottomLeft
-                    if side.open? == false
-                        self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
-                        self.notify(side.bug.bottom_right, BottomCenter) if side.bug.bottom_right != nil
-                    end
-                 end
-            }
-        end
-
-        def top_left; return @sides[TopLeft].bug if @sides[TopLeft].bug != false; end
-        def top_center; return @sides[TopCenter].bug if @sides[TopCenter].bug != false; end
-        def top_right; return @sides[TopRight].bug if @sides[TopRight].bug != false; end
-        def bottom_left; return @sides[BottomLeft].bug if @sides[BottomLeft].bug != false; end
-        def bottom_center; return @sides[BottomCenter].bug if @sides[BottomCenter].bug != false; end
-        def bottom_right; return @sides[BottomRight].bug if @sides[BottomRight].bug != false; end
-        def to_s; return "#{self.color?} #{self.class.name} (ID: #{self.id})"; end
-        def to_str; return "#{self.color?} #{self.class.name} (ID: #{self.id})"; end
-        def color?; return @color.==(White) ? 'White' : 'Black'; end
-        def is_in_play?; return @is_in_play; end
-
-        def move; end
-    end
-
-    class Side
-        attr_accessor :bug
-        
-        def initialize; @bug = false; end
-        def open?; return @bug == false; end
-        def bug; return @bug; end
-
-        def self.name?(side)
-            return case side when TopLeft then "TopLeft"
-                             when TopCenter then "TopCenter"
-                             when TopRight then "TopRight"
-                             when BottomRight then "BottomRight"
-                             when BottomCenter then "BottomCenter"
-                             when BottomLeft then "BottomLeft" end
-        end
-
-        def self.opposite?(side)
-            return case side when TopLeft then BottomRight
-                             when TopCenter then BottomCenter
-                             when TopRight then BottomLeft
-                             when BottomRight then TopLeft
-                             when BottomCenter then TopCenter
-                             when BottomLeft then TopRight end
-        end
-    end
-
-    class Ant
-        include Bug
-
-        def move_candidates
-            self.describe
-        end
-
-        def move; end
-    end
-
-    class Beetle
-        include Bug
-
-        def move; end
-    end
-
-    class Spider
-        include Bug
-
-        def move; end
-    end
-
-    class Grasshopper
-        include Bug
-
-        def move; end
-    end
-
-    class Mosquito
-        include Bug
-
-        def move; end
-    end
-
-    class Ladybug
-        include Bug
-
-        def move; end
-    end
-
-    class Queen
-        include Bug
-
-        def move; end
-
-        def is_surrounded?; self.sides.each{|side| return false if side.bug == false}; end
     end
 
     class Tray < Array
@@ -256,111 +114,11 @@ module Hive
         def queen; self.each{|bug| return bug if bug.class.name == 'Hive::Queen'}; end
     end
 
-    class Surface < Array
-        def first_bug
-            $game.trays.each{|tray|
-                tray.each{|bug| return bug if bug.is_in_play? }
-            }
-        end
-
-        def bug(color, id)
-            $game.bugs[color].each{|bug| return bug if bug.id == id }
-        end
-
-        def +(bug, next_to = false, side = false)
-            error = false
-            return if bug == nil
-            begin
-                raise HiveException, "White always starts first" if $game.turn_number == 1 && bug.color? == 'Black'
-                
-                if $game.turn? == bug.color?
-                    
-                    [White,Black].collect{|color|
-                        if $game.bugs[color].count == 3 && $game.trays[color].queen.is_in_play? == false && bug.class.name != "Hive::Queen"
-                            error = true
-                            raise HiveException, "#{$game.turn?}, you have to place your queen by the 4th turn"
-                        end
-                    }
-
-                    if $game.turn_number == 1
-                        puts "#{$game.turn?} placed first #{bug}"
-                    elsif $game.turn_number == 2
-                        self.first_bug.notify(bug, TopCenter) 
-                        bug.notify(first_bug, Side::opposite?(TopCenter), false)
-                    elsif $game.turn_number >= 3
-                        if next_to.respond_to?('sides') == false
-                            error = true
-                            raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
-                        elsif self.place_candidates($game.turn).include? next_to.sides[side]
-                            next_to.notify(bug, side)
-                            bug.look_around
-                        else
-                            error = InvalidPlacement
-                            raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
-                        end
-                    end
-                    
-                    if error == false
-                        bug.is_in_play = true
-                        $game.bugs[$game.turn] << bug
-                        $game.check_state
-                        $game.turn = bug.color? == 'White' ? Black : White
-                        $game.turn_number = $game.turn_number + 1
-                    end
-                else
-                    raise HiveException, "#{$game.turn?}, it's not your turn!", caller
-                end
-            rescue HiveException => e
-                abort(e.message) if e.message == 'White always starts first'
-                puts e.message
-                next_to.describe if next_to != false && error == InvalidPlacement
-            end
-        end
-
-        def place_candidates(color)
-            echo = caller[0].include? 'play'
-            open_sides = Array.new
-            $game.bugs[color].each{|bug|
-                bug.sides.each_with_index{|side, name|
-                    if name == TopLeft
-                        if side.open? && ((bug.sides[TopCenter].bug && bug.sides[TopCenter].bug.color? == bug.color?) || bug.sides[TopCenter].bug == false) && ((bug.sides[BottomLeft].bug && bug.sides[BottomLeft].bug.color? == bug.color?) || bug.sides[BottomLeft].bug == false)
-                            puts "You can place in the TopLeft of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == TopCenter 
-                        if side.open? && ((bug.sides[TopLeft].bug && bug.sides[TopLeft].bug.color? == bug.color?) || bug.sides[TopLeft].bug == false) && ((bug.sides[TopRight].bug && bug.sides[TopRight].bug.color? == bug.color?) || bug.sides[TopRight].bug == false)
-                            puts "You can place in the TopCenter of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == TopRight 
-                        if side.open? && ((bug.sides[TopCenter].bug && bug.sides[TopCenter].bug.color? == bug.color?) || bug.sides[TopCenter].bug == false) && ((bug.sides[BottomRight].bug && bug.sides[BottomRight].bug.color? == bug.color?) || bug.sides[BottomRight].bug == false)
-                            puts "You can place in the TopRight of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomRight 
-                        if side.open? && ((bug.sides[TopRight].bug && bug.sides[TopRight].bug.color? == bug.color?) || bug.sides[TopRight].bug == false) && ((bug.sides[BottomCenter].bug && bug.sides[BottomCenter].bug.color? == bug.color?) || bug.sides[BottomCenter].bug == false)
-                            puts "You can place in the BottomRight of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomCenter 
-                        if side.open? && ((bug.sides[BottomRight].bug && bug.sides[BottomRight].bug.color? == bug.color?) || bug.sides[BottomRight].bug == false) && ((bug.sides[BottomLeft].bug && bug.sides[BottomLeft].bug.color? == bug.color?) || bug.sides[BottomLeft].bug == false)
-                            puts "You can place in the BottomCenter of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomLeft 
-                        if side.open? && ((bug.sides[BottomCenter].bug && bug.sides[BottomCenter].bug.color? == bug.color?) || bug.sides[BottomCenter].bug == false) && ((bug.sides[TopLeft].bug && bug.sides[TopLeft].bug.color? == bug.color?) || bug.sides[TopLeft].bug == false)
-                            puts "You can place in the BottomLeft of #{bug}" if echo
-                            open_sides << side
-                        end
-                    end
-                }
-            }
-            return open_sides
-        end
-    end
-
     class HiveException < RuntimeError; end
 end
+
+require 'bug'
+require 'surface'
 
 $game = Hive::Game.new
 $game.play
