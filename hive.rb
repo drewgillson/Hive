@@ -33,6 +33,8 @@ module Hive
     Mosquito1    = 11
     Queen1       = 12
 
+    SuppressedMissingMethods = ['to_ary','bug','[]','sides','+','top_left','top_center','top_right','bottom_right','bottom_center','bottom_left']
+
     class Game
         attr_accessor :trays,
                       :bugs,
@@ -89,9 +91,17 @@ module Hive
             $game.surface.+($game.white.get('Queen'), $game.surface.bug(White, Ant3), BottomRight)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Queen1), TopRight)
             $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Queen1), BottomCenter)
-            $game.surface.bug(Black, Grasshopper1).describe
             
+            $game.surface.bugs_not_in_play?
+            #$game.surface.bug(Black, Grasshopper2).move(Black, Beetle1, BottomLeft)
+            #$game.surface.bug(White, Ant2).move_candidates            
             #$game.list_moves
+        end
+
+        def next_turn(color)
+            $game.check_state
+            $game.turn = color
+            $game.turn_number = $game.turn_number + 1
         end
 
         def list_moves
@@ -108,6 +118,10 @@ module Hive
     end
 
     class Tray < Array
+        
+        def flatten; return super(flatten); end
+        def to_ary; return super(to_ary); end
+
         def get(type)
             self.each{|bug| return bug if bug.class.name == "Hive::#{type}" && bug.is_in_play? == false}
             begin
@@ -125,12 +139,18 @@ end
 
 class NilClass
     def method_missing(meth, *args, &block)
-        raise Hive::HiveException, "Something bad happened", caller if ['+','top_left','top_center','top_right','bottom_right','bottom_center','bottom_left'].include?(meth.to_s) == false
+        raise Hive::HiveException, "Something bad happened (missing method " << meth.to_s << ")" if Hive::SuppressedMissingMethods.include?(meth.to_s) == false
     end
 end
 
-require 'bug'
-require 'surface'
+class FalseClass
+    def method_missing(meth, *args, &block)
+        raise Hive::HiveException, "Something bad happened (missing method " << meth.to_s << ")" if Hive::SuppressedMissingMethods.include?(meth.to_s) == false
+    end
+end
+
+require_relative 'bug'
+require_relative 'surface'
 
 $game = Hive::Game.new
 $game.play

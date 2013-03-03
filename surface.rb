@@ -13,6 +13,17 @@ module Hive
             $game.bugs[color].each{|bug| return bug if bug.id == id }
         end
 
+        def bugs_in_play?; self.list_bugs(true); end
+        def bugs_not_in_play?; self.list_bugs(false); end
+        def list_bugs(in_play)
+            bugs = Array.new
+            [White,Black].collect{|color|
+                bugs[color] = $game.trays[color].map{|bug| bug = (bug.is_in_play? == in_play ? bug : nil)}
+            }
+            puts "\nBugs #{in_play ? '' : 'not'} in play: "
+            bugs.flatten.compact.each{|bug| puts bug}
+        end
+
         def walk
             # Walk the game surface to see if there are any islands
             @walkable_bugs = Array.new
@@ -44,7 +55,7 @@ module Hive
                         raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
                     elsif self.place_candidates($game.turn).include?(next_to.sides[side])
                         puts next_to.+(bug, side)
-                        self.announce(next_to, bug, side, verbose = true)
+                        self.announce(next_to, bug, side)
                     else
                         error = InvalidPlacement
                         raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
@@ -54,9 +65,7 @@ module Hive
                 if error == false
                     bug.is_in_play = true
                     $game.bugs[$game.turn] << bug
-                    $game.check_state
-                    $game.turn = bug.color? == 'White' ? Black : White
-                    $game.turn_number = $game.turn_number + 1
+                    $game.next_turn(bug.color? == 'White' ? Black : White)
                 end
             rescue HiveException => e
                 abort(e.message) if e.message == 'White always starts first'
@@ -95,7 +104,7 @@ module Hive
                 bug.sides.each_with_index{|side, name|
                     if side.open?
                         test_bug = Hive::Tester.new(color)
-                        self.announce(bug, test_bug, name, true)
+                        self.announce(bug, test_bug, name)
                         open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
                         self.remove_test_bugs
                     end
@@ -104,7 +113,7 @@ module Hive
             return open_sides
         end
 
-        def announce(bug, test_bug, name, verbose = false)
+        def announce(bug, test_bug, name)
             if name == TopLeft
                 bug.bottom_left.+(test_bug, TopCenter) 
                 bug.top_center.+(test_bug, BottomLeft)
@@ -155,7 +164,7 @@ module Hive
         attr_accessor :bug, :id
         
         def initialize(id, owner)
-            @owner = owner.color? << " " << owner.class.name << (owner.id != false && owner.id.integer? ? owner.id + 1 : false).to_s
+            @owner = owner#owner.color? << " " << owner.class.name << " (ID: " << (owner.id != false ? owner.id : false).to_s << ")"
             @bug = false
             @id = id
             @name = Side::name?(id)
@@ -163,6 +172,10 @@ module Hive
 
         def open?; return @bug == false; end
         def bug; return @bug; end
+
+        def to_s
+            return "#{Side::name?(@id)} of #{@owner}"
+        end
 
         def self.name?(side)
             return case side when TopLeft then "TopLeft"

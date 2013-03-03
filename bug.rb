@@ -48,10 +48,10 @@ module Hive
 
         def walk
             6.times{|i|
-                if @sides[i-1].bug
-                    unless $game.surface.walkable_bugs.include?(@sides[i-1].bug)
-                        $game.surface.walkable_bugs << @sides[i-1].bug
-                        @sides[i-1].bug.walk
+                if @sides[i].bug
+                    unless $game.surface.walkable_bugs.include?(@sides[i].bug)
+                        $game.surface.walkable_bugs << @sides[i].bug
+                        @sides[i].bug.walk
                     end
                 end
             }
@@ -81,7 +81,26 @@ module Hive
             return walkable_count == walkable_count_after_disappear
         end
 
-        def move; end
+        def move(color, bug, destination_side)
+            bug = $game.surface.bug(color, bug)
+            destination = bug.sides[destination_side]
+            begin
+                if self.move_candidates.include? destination
+                    self.sides.each_with_index{|side, name|
+                        side.bug.sides[Side::opposite?(name)].bug = false if side.bug != false
+                        side.bug = false
+                    }
+
+                    bug.+(self, destination_side)
+                    $game.surface.announce(bug, self, destination_side)
+                    puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of #{bug}"
+                else
+                    raise Hive::HiveException, "#{$game.turn?}, that's not a legal move!", caller
+                end
+            rescue HiveException => e
+                puts e.message
+            end
+        end
     end
 
     class Tester
@@ -98,8 +117,57 @@ module Hive
     class Ant
         include Bug
 
-        def move_candidates
-            puts self.can_move?
+        def move_candidates            
+            return nil if self.can_move? == false
+            echo = caller[0].include? 'play'
+
+            def ant_walk(bugs)
+                @candidates = Array.new([bugs]) if @candidates.instance_of?(Array) == false
+                
+                @candidates.each{|bug|
+                    6.times{|i|
+                        unless @candidates.include?(bug.sides[i].bug) || bug.sides[i].bug == false
+                            puts "adding " << bug.sides[i].bug.class.name << " " << bug.sides[i].bug.to_s << " " << bug.sides[i].bug.object_id.to_s
+                            @candidates << bug.sides[i].bug
+                        end
+                    }
+                }
+                puts $game.white.count
+                puts $game.black.count
+                puts @candidates.count
+                #return self.ant_walk(additions)
+                return @candidates
+            end
+
+            candidates = ant_walk(self)
+=begin
+            walk_complete = false
+            move_candidates = Array.new
+            current = self
+
+            until walk_complete == true do
+                6.times{|i|
+                    side = current.sides[i].bug.sides[Side::opposite?(i-1)]
+                    move_candidates << side if side.bug == false
+                }
+                walk_complete = true
+            end
+
+            puts "\nmove_candidates for #{self}:"
+            move_candidates.each{|side|puts side}
+
+            if move_candidate != false
+                until move_candidate.sides[name].bug == false do
+                    move_candidate = move_candidate.sides[name].bug
+                    if echo 
+                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
+                    else
+                        move_candidates << move_candidate.sides[name]
+                    end
+                end
+            end
+=end
+            return @candidates
         end
 
         def move; end
@@ -120,7 +188,25 @@ module Hive
     class Grasshopper
         include Bug
 
-        def move; end
+        def move_candidates            
+            return nil if self.can_move? == false
+            echo = caller[0].include? 'play'
+            candidates = Array.new
+            self.sides.each_with_index{|side, name|
+                move_candidate = side.bug
+                if move_candidate != false
+                    until move_candidate.sides[name].bug == false do
+                        move_candidate = move_candidate.sides[name].bug
+                    end
+                    if echo
+                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
+                    else
+                        candidates << move_candidate.sides[name]
+                    end
+                end
+            }
+            return candidates
+        end
     end
 
     class Mosquito
