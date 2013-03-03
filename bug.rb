@@ -1,13 +1,11 @@
 #!/usr/bin/env ruby
 module Hive
     module Bug
-        attr_accessor :sides, :is_in_play, :id, :color
+        attr_reader :sides, :id, :color
+        attr_accessor :is_in_play
 
         def initialize(color, id = false)
-            @color = color
-            @id = id
-            @is_in_play = false
-            @sides = Array.new
+            @color, @id, @is_in_play, @sides = color, id, false, Array.new
             6.times{|i| @sides << Side.new(i, self)}
         end
 
@@ -29,7 +27,7 @@ module Hive
 
         def describe
             puts "\nThis is what's around " << self
-            self.sides.each{|side|
+            @sides.each{|side|
                 puts "    " << side.bug << " is in " << Side::name?(side.id) if side.bug != false
                 puts "    " << Side::name?(side.id) << " is open " if side.bug == false
             }
@@ -41,25 +39,23 @@ module Hive
         def bottom_left; return @sides[BottomLeft].bug if @sides[BottomLeft].bug != false; end
         def bottom_center; return @sides[BottomCenter].bug if @sides[BottomCenter].bug != false; end
         def bottom_right; return @sides[BottomRight].bug if @sides[BottomRight].bug != false; end
-        def to_s; return "#{self.color?} #{self.class.name} (ID: #{self.id})"; end
-        def to_str; return "#{self.color?} #{self.class.name} (ID: #{self.id})"; end
+        def to_s; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
+        def to_str; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
         def color?; return @color.==(White) ? 'White' : 'Black'; end
         def is_in_play?; return @is_in_play; end
 
         def walk
             6.times{|i|
-                if @sides[i].bug
-                    unless $game.surface.walkable_bugs.include?(@sides[i].bug)
-                        $game.surface.walkable_bugs << @sides[i].bug
-                        @sides[i].bug.walk
-                    end
+                unless $game.surface.walkable_bugs.include?(@sides[i].bug) && @sides[i].bug
+                    $game.surface.walkable_bugs << @sides[i].bug
+                    @sides[i].bug.walk
                 end
             }
         end
 
         def disappear
             @old_sides = @sides
-            self.sides.each_with_index{|side, name|
+            @sides.each_with_index{|side, name|
                 side.bug.sides[Side::opposite?(name)].bug = false if side.bug
             }
             @hidden = true
@@ -67,7 +63,7 @@ module Hive
 
         def appear
             @sides = @old_sides
-            self.sides.each_with_index{|side, name|
+            @sides.each_with_index{|side, name|
                 side.bug.sides[Side::opposite?(name)].bug = self if side.bug
             }
             @hidden = false
@@ -86,13 +82,12 @@ module Hive
             destination = bug.sides[destination_side]
             begin
                 if self.move_candidates.include? destination
-                    self.sides.each_with_index{|side, name|
+                    @sides.each_with_index{|side, name|
                         side.bug.sides[Side::opposite?(name)].bug = false if side.bug != false
                         side.bug = false
                     }
-
                     bug.+(self, destination_side)
-                    $game.surface.announce(bug, self, destination_side)
+                    Bug::announce(bug, self, destination_side)
                     puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of #{bug}"
                 else
                     raise Hive::HiveException, "#{$game.turn?}, that's not a legal move!", caller
@@ -101,15 +96,59 @@ module Hive
                 puts e.message
             end
         end
+
+        def self.announce(bug, test_bug, name)
+            if name == TopLeft
+                bug.bottom_left.+(test_bug, TopCenter) 
+                bug.top_center.+(test_bug, BottomLeft)
+                bug.bottom_left.top_left.+(test_bug, TopRight)
+                bug.top_center.top_left.+(test_bug, BottomCenter)
+                bug.bottom_left.top_left.top_center.+(test_bug, BottomRight)
+                bug.top_center.top_left.bottom_left.+(test_bug, BottomRight)
+            elsif name == TopCenter
+                bug.top_left.+(test_bug, BottomLeft)
+                bug.top_right.+(test_bug, BottomRight)
+                bug.top_right.top_center.+(test_bug, BottomLeft)
+                bug.top_left.top_center.+(test_bug, BottomRight)
+                bug.top_left.top_center.top_right.+(test_bug, BottomCenter)
+                bug.top_right.top_center.top_left.+(test_bug, BottomCenter)
+            elsif name == TopRight
+                bug.top_center.+(test_bug, BottomRight)
+                bug.bottom_right.+(test_bug, TopCenter)
+                bug.top_center.top_right.+(test_bug, BottomCenter)
+                bug.bottom_right.top_right.+(test_bug, TopLeft)
+                bug.top_center.top_right.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_right.top_right.top_center.+(test_bug, BottomLeft)
+            elsif name == BottomRight
+                bug.top_right.+(test_bug, BottomCenter)
+                bug.bottom_center.+(test_bug, TopRight)
+                bug.top_right.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_center.bottom_right.+(test_bug, TopCenter)
+                bug.top_right.bottom_right.bottom_center.+(test_bug, TopLeft)
+                bug.bottom_center.bottom_right.top_right.+(test_bug, TopLeft)
+            elsif name == BottomCenter
+                bug.bottom_left.+(test_bug, BottomRight)
+                bug.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_left.bottom_center.+(test_bug, TopRight)
+                bug.bottom_right.bottom_center.+(test_bug, TopLeft)
+                bug.bottom_left.bottom_center.bottom_right.+(test_bug, TopCenter)
+                bug.bottom_right.bottom_center.bottom_left.+(test_bug, TopCenter)
+            elsif name == BottomLeft
+                bug.top_left.+(test_bug, BottomCenter)
+                bug.bottom_center.+(test_bug, TopLeft)
+                bug.top_left.bottom_left.+(test_bug, BottomRight)
+                bug.bottom_center.bottom_left.+(test_bug, TopCenter)
+                bug.top_left.bottom_left.bottom_center.+(test_bug, TopRight)
+                bug.bottom_center.bottom_left.top_left.+(test_bug, TopRight)
+            end   
+        end
     end
 
     class Tester
         include Bug
 
         def legal_placement?
-            self.sides.each{|side|
-                return false if side.bug != false && side.bug.color? != self.color?
-            }
+            @sides.each{|side| return false if side.bug != false && side.bug.color? != self.color? }
             return true
         end
     end
@@ -123,11 +162,9 @@ module Hive
 
             def ant_walk(bugs)
                 @candidates = Array.new([bugs]) if @candidates.instance_of?(Array) == false
-                
                 @candidates.each{|bug|
                     6.times{|i|
                         unless @candidates.include?(bug.sides[i].bug) || bug.sides[i].bug == false
-                            puts "adding " << bug.sides[i].bug.class.name << " " << bug.sides[i].bug.to_s << " " << bug.sides[i].bug.object_id.to_s
                             @candidates << bug.sides[i].bug
                         end
                     }
@@ -139,35 +176,7 @@ module Hive
                 return @candidates
             end
 
-            candidates = ant_walk(self)
-=begin
-            walk_complete = false
-            move_candidates = Array.new
-            current = self
-
-            until walk_complete == true do
-                6.times{|i|
-                    side = current.sides[i].bug.sides[Side::opposite?(i-1)]
-                    move_candidates << side if side.bug == false
-                }
-                walk_complete = true
-            end
-
-            puts "\nmove_candidates for #{self}:"
-            move_candidates.each{|side|puts side}
-
-            if move_candidate != false
-                until move_candidate.sides[name].bug == false do
-                    move_candidate = move_candidate.sides[name].bug
-                    if echo 
-                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
-                    else
-                        move_candidates << move_candidate.sides[name]
-                    end
-                end
-            end
-=end
-            return @candidates
+            return ant_walk(self)
         end
 
         def move; end
@@ -191,8 +200,9 @@ module Hive
         def move_candidates            
             return nil if self.can_move? == false
             echo = caller[0].include? 'play'
-            candidates = Array.new
-            self.sides.each_with_index{|side, name|
+
+            @candidates = Array.new
+            @sides.each_with_index{|side, name|
                 move_candidate = side.bug
                 if move_candidate != false
                     until move_candidate.sides[name].bug == false do
@@ -201,11 +211,11 @@ module Hive
                     if echo
                         puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
                     else
-                        candidates << move_candidate.sides[name]
+                        @candidates << move_candidate.sides[name]
                     end
                 end
             }
-            return candidates
+            return @candidates
         end
     end
 
@@ -226,6 +236,6 @@ module Hive
 
         def move; end
 
-        def is_surrounded?; self.sides.each{|side| return false if side.bug == false}; end
+        def is_surrounded?; @sides.each{|side| return false if side.bug == false}; end
     end
 end

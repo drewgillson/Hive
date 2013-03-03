@@ -98,9 +98,9 @@ module Hive
             #$game.list_moves
         end
 
-        def next_turn(color)
+        def next_turn
             $game.check_state
-            $game.turn = color
+            $game.turn = ($game.turn == White ? Black : White)
             $game.turn_number = $game.turn_number + 1
         end
 
@@ -151,6 +151,7 @@ end
 
 require_relative 'bug'
 require_relative 'surface'
+require_relative 'side'
 
 $game = Hive::Game.new
 $game.play
