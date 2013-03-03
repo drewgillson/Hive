@@ -4,8 +4,22 @@ module Hive
         attr_reader :sides, :id, :color
         attr_accessor :is_in_play
 
+        Types = {:ant1         => 0,
+                 :ant2         => 1,
+                 :ant3         => 2,
+                 :grasshopper1 => 3,
+                 :grasshopper2 => 4,
+                 :grasshopper3 => 5,
+                 :spider1      => 6,
+                 :spider2      => 7,
+                 :beetle1      => 8,
+                 :beetle2      => 9,
+                 :ladybug1     => 10,
+                 :mosquito1    => 11,
+                 :queen1       => 12}
+
         def initialize(color, id = false)
-            @color, @id, @is_in_play, @sides = color, id, false, Array.new
+            @color, @id, @is_in_play, @sides, @candidates = color, id, false, Array.new, Array.new
             6.times{|i| @sides << Side.new(i, self)}
         end
 
@@ -33,22 +47,24 @@ module Hive
             }
         end
 
-        def top_left; return @sides[TopLeft].bug if @sides[TopLeft].bug != false; end
-        def top_center; return @sides[TopCenter].bug if @sides[TopCenter].bug != false; end
-        def top_right; return @sides[TopRight].bug if @sides[TopRight].bug != false; end
-        def bottom_left; return @sides[BottomLeft].bug if @sides[BottomLeft].bug != false; end
-        def bottom_center; return @sides[BottomCenter].bug if @sides[BottomCenter].bug != false; end
-        def bottom_right; return @sides[BottomRight].bug if @sides[BottomRight].bug != false; end
+        def top_left; return @sides[Side::Faces[:top_left]].bug if @sides[Side::Faces[:top_left]].bug != false; end
+        def top_center; return @sides[Side::Faces[:top_center]].bug if @sides[Side::Faces[:top_center]].bug != false; end
+        def top_right; return @sides[Side::Faces[:top_right]].bug if @sides[Side::Faces[:top_right]].bug != false; end
+        def bottom_left; return @sides[Side::Faces[:bottom_left]].bug if @sides[Side::Faces[:bottom_left]].bug != false; end
+        def bottom_center; return @sides[Side::Faces[:bottom_center]].bug if @sides[Side::Faces[:bottom_center]].bug != false; end
+        def bottom_right; return @sides[Side::Faces[:bottom_right]].bug if @sides[Side::Faces[:bottom_right]].bug != false; end
         def to_s; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
         def to_str; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
-        def color?; return @color.==(White) ? 'White' : 'Black'; end
+        def color?; return @color.==(Hive::Colors[:white]) ? 'White' : 'Black'; end
         def is_in_play?; return @is_in_play; end
 
         def walk
             6.times{|i|
-                unless $game.surface.walkable_bugs.include?(@sides[i].bug) && @sides[i].bug
-                    $game.surface.walkable_bugs << @sides[i].bug
-                    @sides[i].bug.walk
+                if @sides[i].bug
+                    unless $game.surface.walkable_bugs.include?(@sides[i].bug)
+                        $game.surface.walkable_bugs << @sides[i].bug
+                        @sides[i].bug.walk
+                    end
                 end
             }
         end
@@ -98,48 +114,48 @@ module Hive
         end
 
         def self.announce(bug, test_bug, name)
-            if name == TopLeft
-                bug.bottom_left.+(test_bug, TopCenter) 
-                bug.top_center.+(test_bug, BottomLeft)
-                bug.bottom_left.top_left.+(test_bug, TopRight)
-                bug.top_center.top_left.+(test_bug, BottomCenter)
-                bug.bottom_left.top_left.top_center.+(test_bug, BottomRight)
-                bug.top_center.top_left.bottom_left.+(test_bug, BottomRight)
-            elsif name == TopCenter
-                bug.top_left.+(test_bug, BottomLeft)
-                bug.top_right.+(test_bug, BottomRight)
-                bug.top_right.top_center.+(test_bug, BottomLeft)
-                bug.top_left.top_center.+(test_bug, BottomRight)
-                bug.top_left.top_center.top_right.+(test_bug, BottomCenter)
-                bug.top_right.top_center.top_left.+(test_bug, BottomCenter)
-            elsif name == TopRight
-                bug.top_center.+(test_bug, BottomRight)
-                bug.bottom_right.+(test_bug, TopCenter)
-                bug.top_center.top_right.+(test_bug, BottomCenter)
-                bug.bottom_right.top_right.+(test_bug, TopLeft)
-                bug.top_center.top_right.bottom_right.+(test_bug, BottomLeft)
-                bug.bottom_right.top_right.top_center.+(test_bug, BottomLeft)
-            elsif name == BottomRight
-                bug.top_right.+(test_bug, BottomCenter)
-                bug.bottom_center.+(test_bug, TopRight)
-                bug.top_right.bottom_right.+(test_bug, BottomLeft)
-                bug.bottom_center.bottom_right.+(test_bug, TopCenter)
-                bug.top_right.bottom_right.bottom_center.+(test_bug, TopLeft)
-                bug.bottom_center.bottom_right.top_right.+(test_bug, TopLeft)
-            elsif name == BottomCenter
-                bug.bottom_left.+(test_bug, BottomRight)
-                bug.bottom_right.+(test_bug, BottomLeft)
-                bug.bottom_left.bottom_center.+(test_bug, TopRight)
-                bug.bottom_right.bottom_center.+(test_bug, TopLeft)
-                bug.bottom_left.bottom_center.bottom_right.+(test_bug, TopCenter)
-                bug.bottom_right.bottom_center.bottom_left.+(test_bug, TopCenter)
-            elsif name == BottomLeft
-                bug.top_left.+(test_bug, BottomCenter)
-                bug.bottom_center.+(test_bug, TopLeft)
-                bug.top_left.bottom_left.+(test_bug, BottomRight)
-                bug.bottom_center.bottom_left.+(test_bug, TopCenter)
-                bug.top_left.bottom_left.bottom_center.+(test_bug, TopRight)
-                bug.bottom_center.bottom_left.top_left.+(test_bug, TopRight)
+            if name == Side::Faces[:top_left]
+                bug.bottom_left.+(test_bug, Side::Faces[:top_center]) 
+                bug.top_center.+(test_bug, Side::Faces[:bottom_left])
+                bug.bottom_left.top_left.+(test_bug, Side::Faces[:top_right])
+                bug.top_center.top_left.+(test_bug, Side::Faces[:bottom_center])
+                bug.bottom_left.top_left.top_center.+(test_bug, Side::Faces[:bottom_right])
+                bug.top_center.top_left.bottom_left.+(test_bug, Side::Faces[:bottom_right])
+            elsif name == Side::Faces[:top_center]
+                bug.top_left.+(test_bug, Side::Faces[:bottom_left])
+                bug.top_right.+(test_bug, Side::Faces[:bottom_right])
+                bug.top_right.top_center.+(test_bug, Side::Faces[:bottom_left])
+                bug.top_left.top_center.+(test_bug, Side::Faces[:bottom_right])
+                bug.top_left.top_center.top_right.+(test_bug, Side::Faces[:bottom_center])
+                bug.top_right.top_center.top_left.+(test_bug, Side::Faces[:bottom_center])
+            elsif name == Side::Faces[:top_right]
+                bug.top_center.+(test_bug, Side::Faces[:bottom_right])
+                bug.bottom_right.+(test_bug, Side::Faces[:top_center])
+                bug.top_center.top_right.+(test_bug, Side::Faces[:bottom_center])
+                bug.bottom_right.top_right.+(test_bug, Side::Faces[:top_left])
+                bug.top_center.top_right.bottom_right.+(test_bug, Side::Faces[:bottom_left])
+                bug.bottom_right.top_right.top_center.+(test_bug, Side::Faces[:bottom_left])
+            elsif name == Side::Faces[:bottom_right]
+                bug.top_right.+(test_bug, Side::Faces[:bottom_center])
+                bug.bottom_center.+(test_bug, Side::Faces[:top_right])
+                bug.top_right.bottom_right.+(test_bug, Side::Faces[:bottom_left])
+                bug.bottom_center.bottom_right.+(test_bug, Side::Faces[:top_center])
+                bug.top_right.bottom_right.bottom_center.+(test_bug, Side::Faces[:top_left])
+                bug.bottom_center.bottom_right.top_right.+(test_bug, Side::Faces[:top_left])
+            elsif name == Side::Faces[:bottom_center]
+                bug.bottom_left.+(test_bug, Side::Faces[:bottom_right])
+                bug.bottom_right.+(test_bug, Side::Faces[:bottom_left])
+                bug.bottom_left.bottom_center.+(test_bug, Side::Faces[:top_right])
+                bug.bottom_right.bottom_center.+(test_bug, Side::Faces[:top_left])
+                bug.bottom_left.bottom_center.bottom_right.+(test_bug, Side::Faces[:top_center])
+                bug.bottom_right.bottom_center.bottom_left.+(test_bug, Side::Faces[:top_center])
+            elsif name == Side::Faces[:bottom_left]
+                bug.top_left.+(test_bug, Side::Faces[:bottom_center])
+                bug.bottom_center.+(test_bug, Side::Faces[:top_left])
+                bug.top_left.bottom_left.+(test_bug, Side::Faces[:bottom_right])
+                bug.bottom_center.bottom_left.+(test_bug, Side::Faces[:top_center])
+                bug.top_left.bottom_left.bottom_center.+(test_bug, Side::Faces[:top_right])
+                bug.bottom_center.bottom_left.top_left.+(test_bug, Side::Faces[:top_right])
             end   
         end
     end
@@ -160,23 +176,19 @@ module Hive
             return nil if self.can_move? == false
             echo = caller[0].include? 'play'
 
-            def ant_walk(bugs)
-                @candidates = Array.new([bugs]) if @candidates.instance_of?(Array) == false
-                @candidates.each{|bug|
-                    6.times{|i|
-                        unless @candidates.include?(bug.sides[i].bug) || bug.sides[i].bug == false
-                            @candidates << bug.sides[i].bug
-                        end
-                    }
+            # This is a way to limit the problem space so we reduce recursion in ant_walk
+            @i = $game.surface.bugs_in_play?.count * 6
+
+            def ant_walk(sides)
+                sides.each_with_index{|side,name|
+                    @i = @i - 1
+                    @candidates << side if side.bug == false && @candidates.include?(side) == false
                 }
-                puts $game.white.count
-                puts $game.black.count
-                puts @candidates.count
-                #return self.ant_walk(additions)
+                self.ant_walk(@candidates) if @i > 0
                 return @candidates
             end
 
-            return ant_walk(self)
+            return ant_walk(self.sides)
         end
 
         def move; end

@@ -8,13 +8,13 @@ module Hive
 
         def bugs_in_play?; self.list_bugs(true); end
         def bugs_not_in_play?; self.list_bugs(false); end
-        def list_bugs(in_play)
+        def list_bugs(in_play, verbose = false)
             bugs = Array.new
-            [White,Black].collect{|color|
+            [Hive::Colors[:white],Hive::Colors[:black]].collect{|color|
                 bugs[color] = $game.trays[color].map{|bug| bug = (bug.is_in_play? == in_play ? bug : nil)}
             }
-            puts "\nBugs #{in_play ? '' : 'not'} in play: "
-            bugs.flatten.compact.each{|bug| puts bug}
+            puts "\nBugs #{in_play ? '' : 'not'} in play: " if verbose == true
+            return bugs.flatten.compact
         end
 
         # Walk the game surface to see if there are any islands
@@ -32,7 +32,7 @@ module Hive
             begin
                 raise HiveException, "White always starts first" if $game.turn_number == 1 && bug.color? == 'Black'
                     
-                [White,Black].collect{|color|
+                [Hive::Colors[:white],Hive::Colors[:black]].collect{|color|
                     if $game.bugs[color].count == 3 && $game.trays[color].queen.is_in_play? == false && bug.class.name != "Hive::Queen"
                         error = true
                         raise HiveException, "#{$game.turn?}, you have to place your queen by the 4th turn"
@@ -42,7 +42,7 @@ module Hive
                 if $game.turn_number == 1
                     puts "#{$game.turn?} placed first #{bug}"
                 elsif $game.turn_number == 2
-                    puts self.first_bug.+(bug, TopCenter)
+                    puts self.first_bug.+(bug, Side::Faces[:top_center])
                 elsif $game.turn_number >= 3
                     if next_to.respond_to?('sides') == false
                         error = true
@@ -51,7 +51,7 @@ module Hive
                         puts next_to.+(bug, side)
                         Bug::announce(next_to, bug, side)
                     else
-                        error = InvalidPlacement
+                        error = Hive::HiveException[:InvalidPlacement]
                         raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
                     end
                 end
@@ -64,7 +64,7 @@ module Hive
             rescue HiveException => e
                 abort(e.message) if e.message == 'White always starts first'
                 puts e.message
-                next_to.describe if next_to != false && error == InvalidPlacement
+                next_to.describe if next_to != false && error == Hive::HiveException[:InvalidPlacement]
             end
         end
 
@@ -93,7 +93,7 @@ module Hive
                         open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
 
                         def remove_test_bugs
-                            [White,Black].collect.each{|color|
+                            [Hive::Colors[:white],Hive::Colors[:black]].collect.each{|color|
                                 $game.bugs[color].each{|bug| 
                                     bug.sides.each{|side|
                                         side.bug = false if side.bug.class.name == 'Hive::Tester'
