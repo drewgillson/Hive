@@ -160,94 +160,12 @@ module Hive
         end
     end
 
-    class Tester
-        include Bug
-
-        def legal_placement?
-            @sides.each{|side| return false if side.bug != false && side.bug.color? != self.color? }
-            return true
-        end
-    end
-
-    class Ant
-        include Bug
-
-        def move_candidates            
-            return nil if self.can_move? == false
-            echo = caller[0].include? 'play'
-
-            # This is a way to limit the problem space so we reduce recursion in ant_walk
-            @i = $game.surface.bugs_in_play?.count * 6
-
-            def ant_walk(sides)
-                sides.each_with_index{|side,name|
-                    @i = @i - 1
-                    @candidates << side if side.bug == false && @candidates.include?(side) == false
-                }
-                self.ant_walk(@candidates) if @i > 0
-                return @candidates
-            end
-
-            return ant_walk(self.sides)
-        end
-
-        def move; end
-    end
-
-    class Beetle
-        include Bug
-
-        def move; end
-    end
-
-    class Spider
-        include Bug
-
-        def move; end
-    end
-
-    class Grasshopper
-        include Bug
-
-        def move_candidates            
-            return nil if self.can_move? == false
-            echo = caller[0].include? 'play'
-
-            @candidates = Array.new
-            @sides.each_with_index{|side, name|
-                move_candidate = side.bug
-                if move_candidate != false
-                    until move_candidate.sides[name].bug == false do
-                        move_candidate = move_candidate.sides[name].bug
-                    end
-                    if echo
-                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
-                    else
-                        @candidates << move_candidate.sides[name]
-                    end
-                end
-            }
-            return @candidates
-        end
-    end
-
-    class Mosquito
-        include Bug
-
-        def move; end
-    end
-
-    class Ladybug
-        include Bug
-
-        def move; end
-    end
-
-    class Queen
-        include Bug
-
-        def move; end
-
-        def is_surrounded?; @sides.each{|side| return false if side.bug == false}; end
-    end
+    require_relative 'bugs/tester'
+    require_relative 'bugs/ant'
+    require_relative 'bugs/beetle'
+    require_relative 'bugs/spider'
+    require_relative 'bugs/grasshopper'
+    require_relative 'bugs/mosquito'
+    require_relative 'bugs/ladybug'
+    require_relative 'bugs/queen'
 end
