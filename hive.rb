@@ -82,16 +82,22 @@ module Hive
             $game.surface.+$game.white.get('Ant')
             $game.surface.+$game.black.get('Beetle')
             $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant1), BottomLeft)
-            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), BottomLeft)
+            #$game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), BottomLeft)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), TopRight)
             $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant2), BottomRight)
             $game.surface.+($game.black.get('Queen'), $game.surface.bug(Black, Grasshopper1), TopRight)
             $game.surface.+($game.white.get('Queen'), $game.surface.bug(White, Ant3), BottomRight)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Queen1), TopRight)
-            #$game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Ant2), TopCenter)
+            $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Queen1), BottomCenter)
+            $game.surface.bug(Black, Grasshopper1).describe
             
-            $game.surface.move_candidates(White)
-            $game.surface.place_candidates(White).each{|place|puts place.inspect}
+            #$game.list_moves
+        end
+
+        def list_moves
+            $game.surface.move_candidates($game.turn)
+            puts "These are your open spots to place a new bug:\n"
+            $game.surface.place_candidates($game.turn).each{|place|puts place.inspect}
         end
 
         def check_state

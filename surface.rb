@@ -44,7 +44,7 @@ module Hive
                         raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
                     elsif self.place_candidates($game.turn).include?(next_to.sides[side])
                         puts next_to.+(bug, side)
-                        self.announce(next_to, bug, side)
+                        self.announce(next_to, bug, side, verbose = true)
                     else
                         error = InvalidPlacement
                         raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
@@ -95,7 +95,7 @@ module Hive
                 bug.sides.each_with_index{|side, name|
                     if side.open?
                         test_bug = Hive::Tester.new(color)
-                        self.announce(bug, test_bug, name)
+                        self.announce(bug, test_bug, name, true)
                         open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
                         self.remove_test_bugs
                     end
@@ -104,13 +104,13 @@ module Hive
             return open_sides
         end
 
-        def announce(bug, test_bug, name)
+        def announce(bug, test_bug, name, verbose = false)
             if name == TopLeft
-                bug.bottom_left.+(test_bug, TopCenter)
+                bug.bottom_left.+(test_bug, TopCenter) 
                 bug.top_center.+(test_bug, BottomLeft)
-                bug.bottom_left.top_right.+(test_bug, TopRight)
+                bug.bottom_left.top_left.+(test_bug, TopRight)
                 bug.top_center.top_left.+(test_bug, BottomCenter)
-                bug.bottom_left.top_right.top_center.+(test_bug, BottomRight)
+                bug.bottom_left.top_left.top_center.+(test_bug, BottomRight)
                 bug.top_center.top_left.bottom_left.+(test_bug, BottomRight)
             elsif name == TopCenter
                 bug.top_left.+(test_bug, BottomLeft)
@@ -152,7 +152,7 @@ module Hive
     end
 
     class Side
-        attr_accessor :bug
+        attr_accessor :bug, :id
         
         def initialize(id, owner)
             @owner = owner.color? << " " << owner.class.name << (owner.id != false && owner.id.integer? ? owner.id + 1 : false).to_s
