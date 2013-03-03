@@ -32,7 +32,7 @@ module Hive
     Ladybug1     = 10
     Mosquito1    = 11
     Queen1       = 12
-    
+
     class Game
         attr_accessor :trays,
                       :bugs,
@@ -82,16 +82,16 @@ module Hive
             $game.surface.+$game.white.get('Ant')
             $game.surface.+$game.black.get('Beetle')
             $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant1), BottomLeft)
-            #$game.surface.place_candidates($game.turn)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), BottomLeft)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Beetle1), TopRight)
             $game.surface.+($game.white.get('Ant'), $game.surface.bug(White, Ant2), BottomRight)
             $game.surface.+($game.black.get('Queen'), $game.surface.bug(Black, Grasshopper1), TopRight)
             $game.surface.+($game.white.get('Queen'), $game.surface.bug(White, Ant3), BottomRight)
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Black, Queen1), TopRight)
-            $game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Ant1), BottomCenter)
-
-            puts $game.surface.move_candidates(White)
+            #$game.surface.+($game.white.get('Spider'), $game.surface.bug(White, Ant2), TopCenter)
+            
+            $game.surface.move_candidates(White)
+            $game.surface.place_candidates(White).each{|place|puts place.inspect}
         end
 
         def check_state
@@ -115,6 +115,12 @@ module Hive
     end
 
     class HiveException < RuntimeError; end
+end
+
+class NilClass
+    def method_missing(meth, *args, &block)
+        raise Hive::HiveException, "Something bad happened", caller if ['+','top_left','top_center','top_right','bottom_right','bottom_center','bottom_left'].include?(meth.to_s) == false
+    end
 end
 
 require 'bug'

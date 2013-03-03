@@ -37,15 +37,14 @@ module Hive
                 if $game.turn_number == 1
                     puts "#{$game.turn?} placed first #{bug}"
                 elsif $game.turn_number == 2
-                    self.first_bug.notify(bug, TopCenter) 
-                    bug.notify(first_bug, Side::opposite?(TopCenter), false)
+                    puts self.first_bug.+(bug, TopCenter)
                 elsif $game.turn_number >= 3
                     if next_to.respond_to?('sides') == false
                         error = true
                         raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
-                    elsif self.place_candidates($game.turn).include? next_to.sides[side]
-                        next_to.notify(bug, side)
-                        bug.look_around
+                    elsif self.place_candidates($game.turn).include?(next_to.sides[side])
+                        puts next_to.+(bug, side)
+                        self.announce(next_to, bug, side)
                     else
                         error = InvalidPlacement
                         raise HiveException, "#{$game.turn?}, you can't place #{bug} in the " + Side::name?(side) + " of #{next_to}"
@@ -66,6 +65,17 @@ module Hive
             end
         end
 
+        def remove_test_bugs
+            [White,Black].collect.each{|color|
+                $game.bugs[color].each{|bug| 
+                    bug.sides.each{|side|
+                        side.bug = false if side.bug.class.name == 'Hive::Tester'
+                    }
+                    bug = false if bug.class.name == 'Hive::Tester'
+                }
+            }
+        end
+
         def move_candidates(color)
             return if $game.not_my_turn?(color)
             puts "\n#{$game.turn?}, these are your possible moves:\n"
@@ -73,6 +83,7 @@ module Hive
             $game.bugs[color].each{|bug|
                 moveable_bugs << bug if bug.can_move?
             }
+            puts moveable_bugs
             return moveable_bugs
         end
 
@@ -82,47 +93,74 @@ module Hive
             open_sides = Array.new
             $game.bugs[color].each{|bug|
                 bug.sides.each_with_index{|side, name|
-                    if name == TopLeft
-                        if side.open? && ((bug.sides[TopCenter].bug && bug.sides[TopCenter].bug.color? == bug.color?) || bug.sides[TopCenter].bug == false) && ((bug.sides[BottomLeft].bug && bug.sides[BottomLeft].bug.color? == bug.color?) || bug.sides[BottomLeft].bug == false)
-                            puts "You can place in the TopLeft of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == TopCenter 
-                        if side.open? && ((bug.sides[TopLeft].bug && bug.sides[TopLeft].bug.color? == bug.color?) || bug.sides[TopLeft].bug == false) && ((bug.sides[TopRight].bug && bug.sides[TopRight].bug.color? == bug.color?) || bug.sides[TopRight].bug == false)
-                            puts "You can place in the TopCenter of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == TopRight 
-                        if side.open? && ((bug.sides[TopCenter].bug && bug.sides[TopCenter].bug.color? == bug.color?) || bug.sides[TopCenter].bug == false) && ((bug.sides[BottomRight].bug && bug.sides[BottomRight].bug.color? == bug.color?) || bug.sides[BottomRight].bug == false)
-                            puts "You can place in the TopRight of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomRight 
-                        if side.open? && ((bug.sides[TopRight].bug && bug.sides[TopRight].bug.color? == bug.color?) || bug.sides[TopRight].bug == false) && ((bug.sides[BottomCenter].bug && bug.sides[BottomCenter].bug.color? == bug.color?) || bug.sides[BottomCenter].bug == false)
-                            puts "You can place in the BottomRight of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomCenter 
-                        if side.open? && ((bug.sides[BottomRight].bug && bug.sides[BottomRight].bug.color? == bug.color?) || bug.sides[BottomRight].bug == false) && ((bug.sides[BottomLeft].bug && bug.sides[BottomLeft].bug.color? == bug.color?) || bug.sides[BottomLeft].bug == false)
-                            puts "You can place in the BottomCenter of #{bug}" if echo
-                            open_sides << side
-                        end
-                    elsif name == BottomLeft 
-                        if side.open? && ((bug.sides[BottomCenter].bug && bug.sides[BottomCenter].bug.color? == bug.color?) || bug.sides[BottomCenter].bug == false) && ((bug.sides[TopLeft].bug && bug.sides[TopLeft].bug.color? == bug.color?) || bug.sides[TopLeft].bug == false)
-                            puts "You can place in the BottomLeft of #{bug}" if echo
-                            open_sides << side
-                        end
+                    if side.open?
+                        test_bug = Hive::Tester.new(color)
+                        self.announce(bug, test_bug, name)
+                        open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
+                        self.remove_test_bugs
                     end
                 }
             }
             return open_sides
+        end
+
+        def announce(bug, test_bug, name)
+            if name == TopLeft
+                bug.bottom_left.+(test_bug, TopCenter)
+                bug.top_center.+(test_bug, BottomLeft)
+                bug.bottom_left.top_right.+(test_bug, TopRight)
+                bug.top_center.top_left.+(test_bug, BottomCenter)
+                bug.bottom_left.top_right.top_center.+(test_bug, BottomRight)
+                bug.top_center.top_left.bottom_left.+(test_bug, BottomRight)
+            elsif name == TopCenter
+                bug.top_left.+(test_bug, BottomLeft)
+                bug.top_right.+(test_bug, BottomRight)
+                bug.top_right.top_center.+(test_bug, BottomLeft)
+                bug.top_left.top_center.+(test_bug, BottomRight)
+                bug.top_left.top_center.top_right.+(test_bug, BottomCenter)
+                bug.top_right.top_center.top_left.+(test_bug, BottomCenter)
+            elsif name == TopRight
+                bug.top_center.+(test_bug, BottomRight)
+                bug.bottom_right.+(test_bug, TopCenter)
+                bug.top_center.top_right.+(test_bug, BottomCenter)
+                bug.bottom_right.top_right.+(test_bug, TopLeft)
+                bug.top_center.top_right.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_right.top_right.top_center.+(test_bug, BottomLeft)
+            elsif name == BottomRight
+                bug.top_right.+(test_bug, BottomCenter)
+                bug.bottom_center.+(test_bug, TopRight)
+                bug.top_right.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_center.bottom_right.+(test_bug, TopCenter)
+                bug.top_right.bottom_right.bottom_center.+(test_bug, TopLeft)
+                bug.bottom_center.bottom_right.top_right.+(test_bug, TopLeft)
+            elsif name == BottomCenter
+                bug.bottom_left.+(test_bug, BottomRight)
+                bug.bottom_right.+(test_bug, BottomLeft)
+                bug.bottom_left.bottom_center.+(test_bug, TopRight)
+                bug.bottom_right.bottom_center.+(test_bug, TopLeft)
+                bug.bottom_left.bottom_center.bottom_right.+(test_bug, TopCenter)
+                bug.bottom_right.bottom_center.bottom_left.+(test_bug, TopCenter)
+            elsif name == BottomLeft
+                bug.top_left.+(test_bug, BottomCenter)
+                bug.bottom_center.+(test_bug, TopLeft)
+                bug.top_left.bottom_left.+(test_bug, BottomRight)
+                bug.bottom_center.bottom_left.+(test_bug, TopCenter)
+                bug.top_left.bottom_left.bottom_center.+(test_bug, TopRight)
+                bug.bottom_center.bottom_left.top_left.+(test_bug, TopRight)
+            end   
         end
     end
 
     class Side
         attr_accessor :bug
         
-        def initialize; @bug = false; end
+        def initialize(id, owner)
+            @owner = owner.color? << " " << owner.class.name << (owner.id != false && owner.id.integer? ? owner.id + 1 : false).to_s
+            @bug = false
+            @id = id
+            @name = Side::name?(id)
+        end
+
         def open?; return @bug == false; end
         def bug; return @bug; end
 

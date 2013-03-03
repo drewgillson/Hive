@@ -3,18 +3,18 @@ module Hive
     module Bug
         attr_accessor :sides, :is_in_play, :id, :color
 
-        def initialize(color, id)
+        def initialize(color, id = false)
             @color = color
             @id = id
             @is_in_play = false
             @sides = Array.new
-            6.times{@sides << Side.new}
+            6.times{|i| @sides << Side.new(i, self)}
         end
 
-        def notify(bug, side, echo = true)
+        def +(bug, side)
             @sides[side].bug = bug
             bug.sides[Side::opposite?(side)].bug = self
-            puts "#{$game.turn?} placed #{bug} in #{Side::name? side} of #{self}" if echo != false
+            return "#{$game.turn?} placed #{bug} in #{Side::name? side} of #{self}"
         end
 
         def not_hidden?
@@ -28,49 +28,51 @@ module Hive
         end
 
         def describe
+            #return nil if self.is_in_play? == false
             puts "This is what's around " << self
             @sides.each_with_index{|side, index|
                 puts "    " << side.bug << " is in " << Side::name?(index) if side.bug != false
                 puts "    " << Side::name?(index) << " is open" if side.bug == false
             }
         end
-
+=begin
         def look_around
-            @sides.each_with_index{|side, name|
+            self.sides.each_with_index{|side, name|
                 if name == TopLeft
                     if side.open? == false
                         self.notify(side.bug.top_right, TopCenter) if side.bug.top_right != nil
                         self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
                     end
-                 elsif name == TopCenter
+                elsif name == TopCenter
                     if side.open? == false
                         self.notify(side.bug.bottom_left, TopLeft) if side.bug.bottom_left != nil
                         self.notify(side.bug.bottom_right, TopRight) if side.bug.bottom_right != nil
                     end
-                 elsif name == TopRight
+                elsif name == TopRight
                     if side.open? == false
                         self.notify(side.bug.top_left, TopCenter) if side.bug.top_left != nil
                         self.notify(side.bug.bottom_center, BottomRight) if side.bug.bottom_center != nil
                     end
-                 elsif name == BottomRight
+                elsif name == BottomRight
                     if side.open? == false
                         self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
                         self.notify(side.bug.bottom_left, BottomCenter) if side.bug.bottom_left != nil
                     end
-                 elsif name == BottomCenter
+                elsif name == BottomCenter
                     if side.open? == false
                         self.notify(side.bug.top_left, BottomLeft) if side.bug.top_left != nil
                         self.notify(side.bug.top_right, BottomRight) if side.bug.top_right != nil
                     end
-                 elsif name == BottomLeft
+                elsif name == BottomLeft
                     if side.open? == false
                         self.notify(side.bug.top_center, TopLeft) if side.bug.top_center != nil
                         self.notify(side.bug.bottom_right, BottomCenter) if side.bug.bottom_right != nil
                     end
-                 end
+                end
             }
+            return true
         end
-
+=end
         def top_left; return @sides[TopLeft].bug if @sides[TopLeft].bug != false; end
         def top_center; return @sides[TopCenter].bug if @sides[TopCenter].bug != false; end
         def top_right; return @sides[TopRight].bug if @sides[TopRight].bug != false; end
@@ -118,6 +120,17 @@ module Hive
         end
 
         def move; end
+    end
+
+    class Tester
+        include Bug
+
+        def legal_placement?
+            self.sides.each{|side|
+                return false if side.bug != false && side.bug.color? != self.color?
+            }
+            return true
+        end
     end
 
     class Ant
