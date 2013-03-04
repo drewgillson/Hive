@@ -8,16 +8,16 @@ module Hive
             echo = caller[0].include? 'play'
 
             @candidates = Array.new
-            @sides.each_with_index{|side, name|
+            @sides.each{|side|
                 move_candidate = side.bug
                 if move_candidate != false
-                    until move_candidate.sides[name].bug == false do
-                        move_candidate = move_candidate.sides[name].bug
+                    until move_candidate.sides[side.id].bug == false do
+                        move_candidate = move_candidate.sides[side.id].bug
                     end
                     if echo
-                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(name) + " of " +move_candidate.to_s
+                        puts "#{$game.turn?}, you can move " + self + " to the " + Side::name?(side.id) + " of " +move_candidate.to_s
                     else
-                        @candidates << move_candidate.sides[name]
+                        @candidates << move_candidate.sides[side.id]
                     end
                 end
             }

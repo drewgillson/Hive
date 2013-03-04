@@ -89,10 +89,15 @@ module Hive
             echo = caller[0].include? 'play'
             open_sides = Array.new
             $game.bugs[color].each{|bug|
-                bug.sides.each_with_index{|side, name|
+                bug.sides.each{|side|
                     if side.open?
                         test_bug = Hive::Tester.new(color)
-                        Bug::announce(bug, test_bug, name)
+                        if Side::name?(side.id) == 'bottom center' && bug.class.name == "Hive::Queen" && bug.color? == 'Black'
+                            puts Side::name?(side.id)
+                            puts 'open? ' << side.open?.to_s
+                            $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
+                        end
+                        Bug::announce(bug, test_bug, side.id)
                         open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
 
                         def remove_test_bugs

@@ -56,7 +56,7 @@ module Hive
         def list_moves
             $game.surface.move_candidates($game.turn)
             puts "These are your open spots to place a new bug:\n"
-            $game.surface.place_candidates($game.turn).each{|place|puts place.inspect}
+            $game.surface.place_candidates($game.turn).each{|place|puts place}
         end
 
         def check_state
@@ -78,8 +78,10 @@ module Hive
             $game.surface.+($game.white.get('Spider'), $game.surface.bug(Hive::Color[:white], Bug::Type[:queen1]), Side::Face[:bottom_center])
             $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper2]).move(Hive::Color[:black], Bug::Type[:beetle1], Side::Face[:bottom_left])
             $game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move(Hive::Color[:black], Bug::Type[:queen1], Side::Face[:bottom_center])
-            $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
+            $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Hive::Color[:black], Bug::Type[:beetle1]), Side::Face[:top_center])
+            #$game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
             
+            #$game.list_moves
             #$game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move_candidates            
             #$game.list_moves
         end

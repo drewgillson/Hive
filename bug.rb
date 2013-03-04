@@ -72,16 +72,16 @@ module Hive
 
         def disappear
             @old_sides = @sides
-            @sides.each_with_index{|side, name|
-                side.bug.sides[Side::opposite?(name)].bug = false if side.bug
+            @sides.each{|side|
+                side.bug.sides[Side::opposite?(side.id)].bug = false if side.bug
             }
             @hidden = true
         end
 
         def appear
             @sides = @old_sides
-            @sides.each_with_index{|side, name|
-                side.bug.sides[Side::opposite?(name)].bug = self if side.bug
+            @sides.each{|side|
+                side.bug.sides[Side::opposite?(side.id)].bug = self if side.bug
             }
             @hidden = false
         end
@@ -99,11 +99,13 @@ module Hive
             destination = bug.sides[destination_side]
             begin
                 if self.move_candidates.include?(destination.to_s) || self.move_candidates.include?(destination)
-                    @sides.each_with_index{|side, name|
-                        side.bug.sides[Side::opposite?(name)].bug = false if side.bug != false
+                    @sides.each{|side|
+                        side.bug.sides[Side::opposite?(side.id)].bug = false if side.bug != false
                         side.bug = false
                     }
                     bug.+(self, destination_side)
+                    $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
+
                     Bug::announce(bug, self, destination_side)
 
                     puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of #{bug}"
