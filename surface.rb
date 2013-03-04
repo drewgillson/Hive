@@ -1,16 +1,18 @@
 #!/usr/bin/env ruby
 module Hive
     class Surface < Array
-        attr_accessor :walkable_bugs
+        attr_accessor :walkable_bugs, :open_sides
 
         def first_bug; $game.white.each{|bug| return bug if bug.is_in_play? && bug.not_hidden? }; end
-        def bug(color, id); $game.bugs[color].each{|bug| return bug if bug.id == id }; end
+        def bug(color, id)
+            $game.bugs[color].each{|bug| return bug if bug.id == id }
+        end
 
         def bugs_in_play?; self.list_bugs(true); end
         def bugs_not_in_play?; self.list_bugs(false); end
         def list_bugs(in_play, verbose = false)
             bugs = Array.new
-            [Hive::Colors[:white],Hive::Colors[:black]].collect{|color|
+            [Hive::Color[:white],Hive::Color[:black]].collect{|color|
                 bugs[color] = $game.trays[color].map{|bug| bug = (bug.is_in_play? == in_play ? bug : nil)}
             }
             puts "\nBugs #{in_play ? '' : 'not'} in play: " if verbose == true
@@ -18,11 +20,12 @@ module Hive
         end
 
         # Walk the game surface to see if there are any islands
-        def walk
-            @walkable_bugs = Array.new
+        def walk(look_for_sides = false)
+            @walkable_bugs, @open_sides = Array.new, Array.new
             @walkable_bugs << self.first_bug
-            self.first_bug.walk
-            return @walkable_bugs
+            @open_sides << self.first_bug.sides if look_for_sides
+            self.first_bug.walk(look_for_sides)
+            return look_for_sides ? @open_sides : @walkable_bugs
         end
 
         # Place a new bug on the board
@@ -32,7 +35,7 @@ module Hive
             begin
                 raise HiveException, "White always starts first" if $game.turn_number == 1 && bug.color? == 'Black'
                     
-                [Hive::Colors[:white],Hive::Colors[:black]].collect{|color|
+                [Hive::Color[:white],Hive::Color[:black]].collect{|color|
                     if $game.bugs[color].count == 3 && $game.trays[color].queen.is_in_play? == false && bug.class.name != "Hive::Queen"
                         error = true
                         raise HiveException, "#{$game.turn?}, you have to place your queen by the 4th turn"
@@ -42,7 +45,7 @@ module Hive
                 if $game.turn_number == 1
                     puts "#{$game.turn?} placed first #{bug}"
                 elsif $game.turn_number == 2
-                    puts self.first_bug.+(bug, Side::Faces[:top_center])
+                    puts self.first_bug.+(bug, Side::Face[:top_center])
                 elsif $game.turn_number >= 3
                     if next_to.respond_to?('sides') == false
                         error = true
@@ -93,7 +96,7 @@ module Hive
                         open_sides << side if test_bug.legal_placement? || $game.turn_number == 2
 
                         def remove_test_bugs
-                            [Hive::Colors[:white],Hive::Colors[:black]].collect.each{|color|
+                            [Hive::Color[:white],Hive::Color[:black]].collect.each{|color|
                                 $game.bugs[color].each{|bug| 
                                     bug.sides.each{|side|
                                         side.bug = false if side.bug.class.name == 'Hive::Tester'

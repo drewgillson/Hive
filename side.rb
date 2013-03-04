@@ -4,7 +4,7 @@ module Hive
         attr_accessor :bug
         attr_reader :id, :owner
         
-        Faces = {:top_left      => 0,
+        Face = { :top_left      => 0,
                  :top_center    => 1,
                  :top_right     => 2,
                  :bottom_right  => 3,
@@ -23,21 +23,21 @@ module Hive
         end
 
         def self.name?(side)
-            return case side when Side::Faces[:top_left] then "top left"
-                             when Side::Faces[:top_center] then "top center"
-                             when Side::Faces[:top_right] then "top right"
-                             when Side::Faces[:bottom_right] then "bottom right"
-                             when Side::Faces[:bottom_center] then "bottom center"
-                             when Side::Faces[:bottom_left] then "bottom left" end
+            return case side when Side::Face[:top_left] then "top left"
+                             when Side::Face[:top_center] then "top center"
+                             when Side::Face[:top_right] then "top right"
+                             when Side::Face[:bottom_right] then "bottom right"
+                             when Side::Face[:bottom_center] then "bottom center"
+                             when Side::Face[:bottom_left] then "bottom left" end
         end
 
         def self.opposite?(side)
-            return case side when Side::Faces[:top_left] then Side::Faces[:bottom_right]
-                             when Side::Faces[:top_center] then Side::Faces[:bottom_center]
-                             when Side::Faces[:top_right] then Side::Faces[:bottom_left]
-                             when Side::Faces[:bottom_right] then Side::Faces[:top_left]
-                             when Side::Faces[:bottom_center] then Side::Faces[:top_center]
-                             when Side::Faces[:bottom_left] then Side::Faces[:top_right] end
+            return case side when Side::Face[:top_left] then Side::Face[:bottom_right]
+                             when Side::Face[:top_center] then Side::Face[:bottom_center]
+                             when Side::Face[:top_right] then Side::Face[:bottom_left]
+                             when Side::Face[:bottom_right] then Side::Face[:top_left]
+                             when Side::Face[:bottom_center] then Side::Face[:top_center]
+                             when Side::Face[:bottom_left] then Side::Face[:top_right] end
         end
     end
 end

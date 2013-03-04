@@ -4,7 +4,7 @@ module Hive
         attr_reader :sides, :id, :color
         attr_accessor :is_in_play
 
-        Types = {:ant1         => 0,
+        Type = { :ant1         => 0,
                  :ant2         => 1,
                  :ant3         => 2,
                  :grasshopper1 => 3,
@@ -39,33 +39,34 @@ module Hive
             return open_sides.count
         end
 
+        def top_left; return @sides[Side::Face[:top_left]].bug if @sides[Side::Face[:top_left]].bug != false; end
+        def top_center; return @sides[Side::Face[:top_center]].bug if @sides[Side::Face[:top_center]].bug != false; end
+        def top_right; return @sides[Side::Face[:top_right]].bug if @sides[Side::Face[:top_right]].bug != false; end
+        def bottom_left; return @sides[Side::Face[:bottom_left]].bug if @sides[Side::Face[:bottom_left]].bug != false; end
+        def bottom_center; return @sides[Side::Face[:bottom_center]].bug if @sides[Side::Face[:bottom_center]].bug != false; end
+        def bottom_right; return @sides[Side::Face[:bottom_right]].bug if @sides[Side::Face[:bottom_right]].bug != false; end
+        def to_s; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
+        def to_str; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
+        def color?; return @color.==(Hive::Color[:white]) ? 'White' : 'Black'; end
+        def is_in_play?; return @is_in_play; end
+
+        def walk(look_for_sides = false)
+            @sides.each{|side|
+                if side.bug
+                    unless $game.surface.walkable_bugs.include?(side.bug)
+                        $game.surface.walkable_bugs << side.bug
+                        side.bug.sides.each{|side| $game.surface.open_sides << side } if look_for_sides
+                        side.bug.walk(look_for_sides)
+                    end
+                end
+            }
+        end
+
         def describe
             puts "\nThis is what's around " << self
             @sides.each{|side|
                 puts "    " << side.bug << " is in " << Side::name?(side.id) if side.bug != false
                 puts "    " << Side::name?(side.id) << " is open " if side.bug == false
-            }
-        end
-
-        def top_left; return @sides[Side::Faces[:top_left]].bug if @sides[Side::Faces[:top_left]].bug != false; end
-        def top_center; return @sides[Side::Faces[:top_center]].bug if @sides[Side::Faces[:top_center]].bug != false; end
-        def top_right; return @sides[Side::Faces[:top_right]].bug if @sides[Side::Faces[:top_right]].bug != false; end
-        def bottom_left; return @sides[Side::Faces[:bottom_left]].bug if @sides[Side::Faces[:bottom_left]].bug != false; end
-        def bottom_center; return @sides[Side::Faces[:bottom_center]].bug if @sides[Side::Faces[:bottom_center]].bug != false; end
-        def bottom_right; return @sides[Side::Faces[:bottom_right]].bug if @sides[Side::Faces[:bottom_right]].bug != false; end
-        def to_s; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
-        def to_str; return "#{self.color?} #{self.class.name} (ID: #{@id})"; end
-        def color?; return @color.==(Hive::Colors[:white]) ? 'White' : 'Black'; end
-        def is_in_play?; return @is_in_play; end
-
-        def walk
-            6.times{|i|
-                if @sides[i].bug
-                    unless $game.surface.walkable_bugs.include?(@sides[i].bug)
-                        $game.surface.walkable_bugs << @sides[i].bug
-                        @sides[i].bug.walk
-                    end
-                end
             }
         end
 
@@ -97,15 +98,21 @@ module Hive
             bug = $game.surface.bug(color, bug)
             destination = bug.sides[destination_side]
             begin
-                if self.move_candidates.include? destination
+                if self.move_candidates.include?(destination.to_s) || self.move_candidates.include?(destination)
                     @sides.each_with_index{|side, name|
                         side.bug.sides[Side::opposite?(name)].bug = false if side.bug != false
                         side.bug = false
                     }
                     bug.+(self, destination_side)
                     Bug::announce(bug, self, destination_side)
+
                     puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of #{bug}"
+
+                    $game.next_turn
                 else
+                    puts self.move_candidates
+                    puts "114:"
+                    puts destination
                     raise Hive::HiveException, "#{$game.turn?}, that's not a legal move!", caller
                 end
             rescue HiveException => e
@@ -114,48 +121,48 @@ module Hive
         end
 
         def self.announce(bug, test_bug, name)
-            if name == Side::Faces[:top_left]
-                bug.bottom_left.+(test_bug, Side::Faces[:top_center]) 
-                bug.top_center.+(test_bug, Side::Faces[:bottom_left])
-                bug.bottom_left.top_left.+(test_bug, Side::Faces[:top_right])
-                bug.top_center.top_left.+(test_bug, Side::Faces[:bottom_center])
-                bug.bottom_left.top_left.top_center.+(test_bug, Side::Faces[:bottom_right])
-                bug.top_center.top_left.bottom_left.+(test_bug, Side::Faces[:bottom_right])
-            elsif name == Side::Faces[:top_center]
-                bug.top_left.+(test_bug, Side::Faces[:bottom_left])
-                bug.top_right.+(test_bug, Side::Faces[:bottom_right])
-                bug.top_right.top_center.+(test_bug, Side::Faces[:bottom_left])
-                bug.top_left.top_center.+(test_bug, Side::Faces[:bottom_right])
-                bug.top_left.top_center.top_right.+(test_bug, Side::Faces[:bottom_center])
-                bug.top_right.top_center.top_left.+(test_bug, Side::Faces[:bottom_center])
-            elsif name == Side::Faces[:top_right]
-                bug.top_center.+(test_bug, Side::Faces[:bottom_right])
-                bug.bottom_right.+(test_bug, Side::Faces[:top_center])
-                bug.top_center.top_right.+(test_bug, Side::Faces[:bottom_center])
-                bug.bottom_right.top_right.+(test_bug, Side::Faces[:top_left])
-                bug.top_center.top_right.bottom_right.+(test_bug, Side::Faces[:bottom_left])
-                bug.bottom_right.top_right.top_center.+(test_bug, Side::Faces[:bottom_left])
-            elsif name == Side::Faces[:bottom_right]
-                bug.top_right.+(test_bug, Side::Faces[:bottom_center])
-                bug.bottom_center.+(test_bug, Side::Faces[:top_right])
-                bug.top_right.bottom_right.+(test_bug, Side::Faces[:bottom_left])
-                bug.bottom_center.bottom_right.+(test_bug, Side::Faces[:top_center])
-                bug.top_right.bottom_right.bottom_center.+(test_bug, Side::Faces[:top_left])
-                bug.bottom_center.bottom_right.top_right.+(test_bug, Side::Faces[:top_left])
-            elsif name == Side::Faces[:bottom_center]
-                bug.bottom_left.+(test_bug, Side::Faces[:bottom_right])
-                bug.bottom_right.+(test_bug, Side::Faces[:bottom_left])
-                bug.bottom_left.bottom_center.+(test_bug, Side::Faces[:top_right])
-                bug.bottom_right.bottom_center.+(test_bug, Side::Faces[:top_left])
-                bug.bottom_left.bottom_center.bottom_right.+(test_bug, Side::Faces[:top_center])
-                bug.bottom_right.bottom_center.bottom_left.+(test_bug, Side::Faces[:top_center])
-            elsif name == Side::Faces[:bottom_left]
-                bug.top_left.+(test_bug, Side::Faces[:bottom_center])
-                bug.bottom_center.+(test_bug, Side::Faces[:top_left])
-                bug.top_left.bottom_left.+(test_bug, Side::Faces[:bottom_right])
-                bug.bottom_center.bottom_left.+(test_bug, Side::Faces[:top_center])
-                bug.top_left.bottom_left.bottom_center.+(test_bug, Side::Faces[:top_right])
-                bug.bottom_center.bottom_left.top_left.+(test_bug, Side::Faces[:top_right])
+            if name == Side::Face[:top_left]
+                bug.bottom_left.+(test_bug, Side::Face[:top_center]) 
+                bug.top_center.+(test_bug, Side::Face[:bottom_left])
+                bug.bottom_left.top_left.+(test_bug, Side::Face[:top_right])
+                bug.top_center.top_left.+(test_bug, Side::Face[:bottom_center])
+                bug.bottom_left.top_left.top_center.+(test_bug, Side::Face[:bottom_right])
+                bug.top_center.top_left.bottom_left.+(test_bug, Side::Face[:bottom_right])
+            elsif name == Side::Face[:top_center]
+                bug.top_left.+(test_bug, Side::Face[:bottom_left])
+                bug.top_right.+(test_bug, Side::Face[:bottom_right])
+                bug.top_right.top_center.+(test_bug, Side::Face[:bottom_left])
+                bug.top_left.top_center.+(test_bug, Side::Face[:bottom_right])
+                bug.top_left.top_center.top_right.+(test_bug, Side::Face[:bottom_center])
+                bug.top_right.top_center.top_left.+(test_bug, Side::Face[:bottom_center])
+            elsif name == Side::Face[:top_right]
+                bug.top_center.+(test_bug, Side::Face[:bottom_right])
+                bug.bottom_right.+(test_bug, Side::Face[:top_center])
+                bug.top_center.top_right.+(test_bug, Side::Face[:bottom_center])
+                bug.bottom_right.top_right.+(test_bug, Side::Face[:top_left])
+                bug.top_center.top_right.bottom_right.+(test_bug, Side::Face[:bottom_left])
+                bug.bottom_right.top_right.top_center.+(test_bug, Side::Face[:bottom_left])
+            elsif name == Side::Face[:bottom_right]
+                bug.top_right.+(test_bug, Side::Face[:bottom_center])
+                bug.bottom_center.+(test_bug, Side::Face[:top_right])
+                bug.top_right.bottom_right.+(test_bug, Side::Face[:bottom_left])
+                bug.bottom_center.bottom_right.+(test_bug, Side::Face[:top_center])
+                bug.top_right.bottom_right.bottom_center.+(test_bug, Side::Face[:top_left])
+                bug.bottom_center.bottom_right.top_right.+(test_bug, Side::Face[:top_left])
+            elsif name == Side::Face[:bottom_center]
+                bug.bottom_left.+(test_bug, Side::Face[:bottom_right])
+                bug.bottom_right.+(test_bug, Side::Face[:bottom_left])
+                bug.bottom_left.bottom_center.+(test_bug, Side::Face[:top_right])
+                bug.bottom_right.bottom_center.+(test_bug, Side::Face[:top_left])
+                bug.bottom_left.bottom_center.bottom_right.+(test_bug, Side::Face[:top_center])
+                bug.bottom_right.bottom_center.bottom_left.+(test_bug, Side::Face[:top_center])
+            elsif name == Side::Face[:bottom_left]
+                bug.top_left.+(test_bug, Side::Face[:bottom_center])
+                bug.bottom_center.+(test_bug, Side::Face[:top_left])
+                bug.top_left.bottom_left.+(test_bug, Side::Face[:bottom_right])
+                bug.bottom_center.bottom_left.+(test_bug, Side::Face[:top_center])
+                bug.top_left.bottom_left.bottom_center.+(test_bug, Side::Face[:top_right])
+                bug.bottom_center.bottom_left.top_left.+(test_bug, Side::Face[:top_right])
             end   
         end
     end
