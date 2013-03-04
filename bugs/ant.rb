@@ -3,6 +3,7 @@ module Hive
     class Ant
         include Bug
 
+        # Still a work in progress!
         def move_candidates            
             return nil if self.can_move? == false
             echo = caller[0].include? 'play'
