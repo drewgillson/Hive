@@ -51,7 +51,6 @@ module Hive
                         error = true
                         raise HiveException, "#{$game.turn?}, you specified a next_to bug that isn't on the surface yet"
                     elsif self.place_candidates($game.turn).include?(next_to.sides[side])
-                        puts next_to.+(bug, side)
                         Bug::announce(next_to, bug, side)
                     else
                         error = Hive::HiveException[:InvalidPlacement]

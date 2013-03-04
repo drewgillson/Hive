@@ -95,20 +95,18 @@ module Hive
         end
 
         def move(color, bug, destination_side)
-            bug = $game.surface.bug(color, bug)
-            destination = bug.sides[destination_side]
+            destination = $game.surface.bug(color, bug).sides[destination_side]
             begin
                 if self.move_candidates.include?(destination.to_s) || self.move_candidates.include?(destination)
                     @sides.each{|side|
                         side.bug.sides[Side::opposite?(side.id)].bug = false if side.bug != false
                         side.bug = false
                     }
-                    bug.+(self, destination_side)
-                    $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
+                    $game.surface.bug(color, bug).+(self, destination_side)
 
-                    Bug::announce(bug, self, destination_side)
+                    Bug::announce($game.surface.bug(color, bug), self, destination_side)
 
-                    puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of #{bug}"
+                    puts "#{$game.turn?} moved #{self} to the #{Side::name? destination_side} of " << $game.surface.bug(color, bug).to_s
 
                     $game.next_turn
                 else
@@ -119,49 +117,58 @@ module Hive
             end
         end
 
-        def self.announce(bug, test_bug, name)
-            if name == Side::Face[:top_left]
-                bug.bottom_left.+(test_bug, Side::Face[:top_center]) 
-                bug.top_center.+(test_bug, Side::Face[:bottom_left])
-                bug.bottom_left.top_left.+(test_bug, Side::Face[:top_right])
-                bug.top_center.top_left.+(test_bug, Side::Face[:bottom_center])
-                bug.bottom_left.top_left.top_center.+(test_bug, Side::Face[:bottom_right])
-                bug.top_center.top_left.bottom_left.+(test_bug, Side::Face[:bottom_right])
-            elsif name == Side::Face[:top_center]
-                bug.top_left.+(test_bug, Side::Face[:bottom_left])
-                bug.top_right.+(test_bug, Side::Face[:bottom_right])
-                bug.top_right.top_center.+(test_bug, Side::Face[:bottom_left])
-                bug.top_left.top_center.+(test_bug, Side::Face[:bottom_right])
-                bug.top_left.top_center.top_right.+(test_bug, Side::Face[:bottom_center])
-                bug.top_right.top_center.top_left.+(test_bug, Side::Face[:bottom_center])
-            elsif name == Side::Face[:top_right]
-                bug.top_center.+(test_bug, Side::Face[:bottom_right])
-                bug.bottom_right.+(test_bug, Side::Face[:top_center])
-                bug.top_center.top_right.+(test_bug, Side::Face[:bottom_center])
-                bug.bottom_right.top_right.+(test_bug, Side::Face[:top_left])
-                bug.top_center.top_right.bottom_right.+(test_bug, Side::Face[:bottom_left])
-                bug.bottom_right.top_right.top_center.+(test_bug, Side::Face[:bottom_left])
-            elsif name == Side::Face[:bottom_right]
-                bug.top_right.+(test_bug, Side::Face[:bottom_center])
-                bug.bottom_center.+(test_bug, Side::Face[:top_right])
-                bug.top_right.bottom_right.+(test_bug, Side::Face[:bottom_left])
-                bug.bottom_center.bottom_right.+(test_bug, Side::Face[:top_center])
-                bug.top_right.bottom_right.bottom_center.+(test_bug, Side::Face[:top_left])
-                bug.bottom_center.bottom_right.top_right.+(test_bug, Side::Face[:top_left])
-            elsif name == Side::Face[:bottom_center]
-                bug.bottom_left.+(test_bug, Side::Face[:bottom_right])
-                bug.bottom_right.+(test_bug, Side::Face[:bottom_left])
-                bug.bottom_left.bottom_center.+(test_bug, Side::Face[:top_right])
-                bug.bottom_right.bottom_center.+(test_bug, Side::Face[:top_left])
-                bug.bottom_left.bottom_center.bottom_right.+(test_bug, Side::Face[:top_center])
-                bug.bottom_right.bottom_center.bottom_left.+(test_bug, Side::Face[:top_center])
-            elsif name == Side::Face[:bottom_left]
-                bug.top_left.+(test_bug, Side::Face[:bottom_center])
-                bug.bottom_center.+(test_bug, Side::Face[:top_left])
-                bug.top_left.bottom_left.+(test_bug, Side::Face[:bottom_right])
-                bug.bottom_center.bottom_left.+(test_bug, Side::Face[:top_center])
-                bug.top_left.bottom_left.bottom_center.+(test_bug, Side::Face[:top_right])
-                bug.bottom_center.bottom_left.top_left.+(test_bug, Side::Face[:top_right])
+        def self.announce(adjacent_bug, new_bug, position)
+            
+            # The new_bug is going into the adjacent_bug's position.
+
+            puts adjacent_bug.+(new_bug, position)
+            if position == Side::Face[:top_left]
+                adjacent_bug.bottom_left.+(new_bug, Side::Face[:top_center]) 
+                adjacent_bug.top_center.+(new_bug, Side::Face[:bottom_left])
+                adjacent_bug.bottom_left.top_left.+(new_bug, Side::Face[:top_right])
+                adjacent_bug.top_center.top_left.+(new_bug, Side::Face[:bottom_center])
+                adjacent_bug.bottom_left.top_left.top_center.+(new_bug, Side::Face[:bottom_right])
+                adjacent_bug.top_center.top_left.bottom_left.+(new_bug, Side::Face[:bottom_right])
+
+            elsif position == Side::Face[:top_center]
+                adjacent_bug.bottom_left.+(new_bug, Side::Face[:bottom_right])
+                adjacent_bug.bottom_right.+(new_bug, Side::Face[:bottom_left])
+                adjacent_bug.bottom_left.bottom_center.+(new_bug, Side::Face[:top_right])
+                adjacent_bug.bottom_right.bottom_center.+(new_bug, Side::Face[:upper_left])
+                adjacent_bug.bottom_left.bottom_center.bottom_right.+(new_bug, Side::Face[:top_center])
+                adjacent_bug.bottom_right.bottom_center.bottom_left.+(new_bug, Side::Face[:top_center])
+
+            elsif position == Side::Face[:top_right]
+                adjacent_bug.top_center.+(new_bug, Side::Face[:bottom_right])
+                adjacent_bug.bottom_right.+(new_bug, Side::Face[:top_center])
+                adjacent_bug.top_center.top_right.+(new_bug, Side::Face[:bottom_center])
+                adjacent_bug.bottom_right.top_right.+(new_bug, Side::Face[:top_left])
+                adjacent_bug.top_center.top_right.bottom_right.+(new_bug, Side::Face[:bottom_left])
+                adjacent_bug.bottom_right.top_right.top_center.+(new_bug, Side::Face[:bottom_left])
+
+            elsif position == Side::Face[:bottom_right]
+                adjacent_bug.top_right.+(new_bug, Side::Face[:bottom_center])
+                adjacent_bug.bottom_center.+(new_bug, Side::Face[:top_right])
+                adjacent_bug.top_right.bottom_right.+(new_bug, Side::Face[:bottom_left])
+                adjacent_bug.bottom_center.bottom_right.+(new_bug, Side::Face[:top_center])
+                adjacent_bug.top_right.bottom_right.bottom_center.+(new_bug, Side::Face[:top_left])
+                adjacent_bug.bottom_center.bottom_right.top_right.+(new_bug, Side::Face[:top_left])
+
+            elsif position == Side::Face[:bottom_center]
+                adjacent_bug.bottom_left.+(new_bug, Side::Face[:bottom_right])
+                adjacent_bug.bottom_right.+(new_bug, Side::Face[:bottom_left])
+                adjacent_bug.bottom_left.bottom_center.+(new_bug, Side::Face[:top_right])
+                adjacent_bug.bottom_right.bottom_center.+(new_bug, Side::Face[:top_left])
+                adjacent_bug.bottom_left.bottom_center.bottom_right.+(new_bug, Side::Face[:top_center])
+                adjacent_bug.bottom_right.bottom_center.bottom_left.+(new_bug, Side::Face[:top_center])
+
+            elsif position == Side::Face[:bottom_left]
+                adjacent_bug.top_left.+(new_bug, Side::Face[:bottom_center])
+                adjacent_bug.bottom_center.+(new_bug, Side::Face[:top_left])
+                adjacent_bug.top_left.bottom_left.+(new_bug, Side::Face[:bottom_right])
+                adjacent_bug.bottom_center.bottom_left.+(new_bug, Side::Face[:top_center])
+                adjacent_bug.top_left.bottom_left.bottom_center.+(new_bug, Side::Face[:top_right])
+                adjacent_bug.bottom_center.bottom_left.top_left.+(new_bug, Side::Face[:top_right])
             end   
         end
     end

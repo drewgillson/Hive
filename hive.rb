@@ -76,11 +76,23 @@ module Hive
             $game.surface.+($game.white.get('Queen'), $game.surface.bug(Hive::Color[:white], Bug::Type[:ant3]), Side::Face[:bottom_right])
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]), Side::Face[:top_right])
             $game.surface.+($game.white.get('Spider'), $game.surface.bug(Hive::Color[:white], Bug::Type[:queen1]), Side::Face[:bottom_center])
-            $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper2]).move(Hive::Color[:black], Bug::Type[:beetle1], Side::Face[:bottom_left])
-            $game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move(Hive::Color[:black], Bug::Type[:queen1], Side::Face[:bottom_center])
+            #$game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper2]).move(Hive::Color[:black], Bug::Type[:beetle1], Side::Face[:bottom_left])
+            #$game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move(Hive::Color[:black], Bug::Type[:queen1], Side::Face[:bottom_center])
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Hive::Color[:black], Bug::Type[:beetle1]), Side::Face[:top_center])
+            
+            puts "=======================\n\n\n"
+            $game.surface.bug(Hive::Color[:black], Bug::Type[:beetle1]).describe
+            $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper1]).describe
+            $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper2]).describe
+            $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper3]).describe
             $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
             
+            $game.surface.bug(Hive::Color[:white], Bug::Type[:ant1]).describe
+            $game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).describe
+            $game.surface.bug(Hive::Color[:white], Bug::Type[:ant3]).describe
+            $game.surface.bug(Hive::Color[:white], Bug::Type[:queen1]).describe
+            $game.surface.bug(Hive::Color[:white], Bug::Type[:spider1]).describe
+
             #$game.list_moves
             #$game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move_candidates            
             #$game.list_moves
