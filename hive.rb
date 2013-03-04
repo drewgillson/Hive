@@ -79,7 +79,7 @@ module Hive
             $game.surface.bug(Hive::Color[:black], Bug::Type[:grasshopper2]).move(Hive::Color[:black], Bug::Type[:beetle1], Side::Face[:bottom_left])
             $game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move(Hive::Color[:black], Bug::Type[:queen1], Side::Face[:bottom_center])
             $game.surface.+($game.black.get('Grasshopper'), $game.surface.bug(Hive::Color[:black], Bug::Type[:beetle1]), Side::Face[:top_center])
-            #$game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
+            $game.surface.bug(Hive::Color[:black], Bug::Type[:queen1]).describe
             
             #$game.list_moves
             #$game.surface.bug(Hive::Color[:white], Bug::Type[:ant2]).move_candidates            

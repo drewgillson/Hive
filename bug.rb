@@ -112,9 +112,6 @@ module Hive
 
                     $game.next_turn
                 else
-                    puts self.move_candidates
-                    puts "114:"
-                    puts destination
                     raise Hive::HiveException, "#{$game.turn?}, that's not a legal move!", caller
                 end
             rescue HiveException => e
